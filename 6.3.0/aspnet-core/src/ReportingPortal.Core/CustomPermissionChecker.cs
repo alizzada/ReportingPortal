@@ -251,8 +251,6 @@ namespace Abp.Authorization
 
                 SqlDataReader rd = cmdRoles.ExecuteReader();
 
-                var roles = new ArrayList();
-
                 while (rd.Read())
                 {
                     newCacheItem.RoleIds.Add((int)rd["RoleId"]);
@@ -440,7 +438,7 @@ namespace Abp.Authorization
                 SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("Default"));
                 conn.Open();
 
-                SqlCommand cmdRolePermission = new SqlCommand("Select * from AbpRoles where id=@roleId", conn);
+                SqlCommand cmdRolePermission = new SqlCommand("Select * from AbpRoles where Id=@roleId", conn);
 
                 cmdRolePermission.Parameters.AddWithValue("@roleId", roleId);
 
@@ -530,7 +528,7 @@ namespace Abp.Authorization
                 SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("Default"));
                 conn.Open();
 
-                SqlCommand cmdRolePermission = new SqlCommand("Select * from AbpRoles where id=@roleId", conn);
+                SqlCommand cmdRolePermission = new SqlCommand("Select * from AbpRoles where Id=@roleId", conn);
 
                 cmdRolePermission.Parameters.AddWithValue("@roleId", roleId);
 

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <VersionPrefix>1.0.0.0</VersionPrefix>
     <TargetFramework>net5.0</TargetFramework>
@@ -13,4 +13,10 @@
   <ItemGroup>
     <ProjectReference Include="..\ReportingPortal.Core\ReportingPortal.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <Reference Include="ServicePortal.Core.Shared">
+      <HintPath>..\..\..\..\..\..\TayqaTech\TayqaSale\ServicePortal\ServicePortal\aspnet-core\src\ServicePortal.Core.Shared\bin\Debug\netstandard2.0\ServicePortal.Core.Shared.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>

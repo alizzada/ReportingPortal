@@ -18,8 +18,7 @@ using Abp.Json;
 using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using Newtonsoft.Json.Serialization;
-using ReportingPortal.Identity;
-using ReportingPortal.Authentication.JwtBearer;
+using ServicePortal.Core.Shared;
 
 namespace ReportingPortal.Web.Host.Startup
 {
@@ -110,6 +109,8 @@ namespace ReportingPortal.Web.Host.Startup
                     Type = SecuritySchemeType.ApiKey
                 });
             });
+
+           
 
             // Configure Abp and Dependency Injection
             return services.AddAbp<ReportingPortalWebHostModule>(

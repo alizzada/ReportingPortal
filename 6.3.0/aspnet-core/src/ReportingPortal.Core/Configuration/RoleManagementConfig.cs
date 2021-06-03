@@ -1,4 +1,6 @@
-﻿using Abp.Zero.Configuration;
+﻿using Abp.MultiTenancy;
+using Abp.Zero.Configuration;
+using ServicePortal.Authorization.Roles;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -13,7 +15,22 @@ namespace ReportingPortal.Configuration
 
         public RoleManagementConfig()
         {
-            StaticRoles = new List<StaticRoleDefinition>();
+            StaticRoles = new List<StaticRoleDefinition>
+            {
+                new StaticRoleDefinition(
+                   StaticRoleNames.Host.Admin,
+                   MultiTenancySides.Host),
+
+                //Static tenant roles
+
+                new StaticRoleDefinition(
+                    StaticRoleNames.Tenants.Admin,
+                    MultiTenancySides.Tenant),
+
+                new StaticRoleDefinition(
+                    StaticRoleNames.Tenants.User,
+                    MultiTenancySides.Tenant)
+            };
         }
     }
 }
