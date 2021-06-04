@@ -65,50 +65,29 @@ namespace Abp.Authorization
 
         public virtual async Task<bool> IsGrantedAsync(long userId, string permissionName)
         {
-            //return await _userManager.IsGrantedAsync(userId, permissionName);
-
-            SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("Default"));
-            conn.Open();
-
-            SqlCommand cmdGetPermission = new SqlCommand("Select name from AbpPermissions where name=@permissionName", conn);
-            cmdGetPermission.Parameters.AddWithValue("@permissionName", permissionName);
-
-            var name= (await cmdGetPermission.ExecuteScalarAsync())?.ToString();
-
-            Permission permission = new Permission(name);
-            conn.Close();
-
-            return await IsGrantedAsync(
-                userId,
-                permission
-                );
+            return await IsGrantedAsync(userId,GetPermissionByPermissionName(permissionName));
         }
-       
+
+        private  Permission GetPermissionByPermissionName(string permissionName)
+        {
+            using(SqlConnection conn=new SqlConnection(_configuration.GetConnectionString("Default")))
+            {
+                conn.Open();
+
+                SqlCommand cmdGetPermission = new SqlCommand("Select name from AbpPermissions where name=@permissionName", conn);
+                cmdGetPermission.Parameters.AddWithValue("@permissionName", permissionName);
+
+                var name = (cmdGetPermission.ExecuteScalar())?.ToString();
+
+                Permission permission = new Permission(name);
+
+                return permission;
+            } 
+        }
         public virtual bool IsGranted(long userId, string permissionName)
         {
-            //return _userManager.IsGranted(userId, permissionName);
-
-            SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("Default"));
-            conn.Open();
-
-            SqlCommand cmdGetPermission = new SqlCommand("Select name from AbpPermissions where name=@permissionName", conn);
-            cmdGetPermission.Parameters.AddWithValue("@permissionName", permissionName);
-
-            string name = string.Empty;
-            name = (cmdGetPermission.ExecuteScalar())?.ToString();
-
-            Permission permission = new Permission(name);
-            conn.Close();
-
-            return  IsGranted(
-                userId,
-                permission
-                );
+            return  IsGranted(userId,GetPermissionByPermissionName(permissionName));
         }
-
-      
-
-
 
         [UnitOfWork]
         public virtual async Task<bool> IsGrantedAsync(UserIdentifier user, string permissionName)
@@ -144,77 +123,53 @@ namespace Abp.Authorization
             var cacheKey = userId + "@" + (GetCurrentTenantId() ?? 0);
             return await _cacheManager.GetUserPermissionCache().GetAsync(cacheKey, async () =>
             {
-                //var user = await FindByIdAsync(userId.ToString());
-
-                SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("Default"));
-                conn.Open();
-
-                //Checking User
-                SqlCommand cmdUsers = new SqlCommand("Select count(*) from AbpUsers where Id=@userId", conn);
-                cmdUsers.Parameters.AddWithValue("@userId", userId);
-
-                int result = (int)cmdUsers.ExecuteScalar();
-
-                if (result == 0)
+                using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("Default")))
                 {
-                    return null;
-                }
+                    conn.Open();
 
-                var newCacheItem = new UserPermissionCacheItem(userId);
+                    //Checking User
+                    SqlCommand cmdUsers = new SqlCommand("Select count(*) from AbpUsers where Id=@userId", conn);
+                    cmdUsers.Parameters.AddWithValue("@userId", userId);
 
-                //foreach (var roleName in await GetRolesAsync(user))
-                //{
-                //    newCacheItem.RoleIds.Add((await RoleManager.GetRoleByNameAsync(roleName)).Id);
-                //}
+                    int result = (int)cmdUsers.ExecuteScalar();
 
-
-                //Get User Roles by userId
-                SqlCommand cmdRoles = new SqlCommand("Select * from AbpUserRoles  where UserId=@userId", conn);
-                cmdRoles.Parameters.AddWithValue("@userId", userId);
-
-                SqlDataReader rd = cmdRoles.ExecuteReader();
-
-                var roles = new ArrayList();
-
-                while (rd.Read())
-                {
-                    newCacheItem.RoleIds.Add((int)rd["RoleId"]);
-                }
-
-                //Get User Permissions by userId
-                SqlCommand cmdPermissions = new SqlCommand("Select * from AbpPermissions where UserId=@userId", conn);
-                cmdPermissions.Parameters.AddWithValue("@userId", userId);
-
-                SqlDataReader reader = cmdPermissions.ExecuteReader();
-
-                while (reader.Read())
-                {
-                    if ((bool)reader["IsGranted"])
+                    if (result == 0)
                     {
-                        newCacheItem.GrantedPermissions.Add(reader["Name"].ToString());
+                        return null;
                     }
-                    else
+
+                    var newCacheItem = new UserPermissionCacheItem(userId);
+
+                    //Get User Roles by userId
+                    SqlCommand cmdRoles = new SqlCommand("Select * from AbpUserRoles  where UserId=@userId", conn);
+                    cmdRoles.Parameters.AddWithValue("@userId", userId);
+
+                    SqlDataReader rd = cmdRoles.ExecuteReader();
+
+                    while (rd.Read())
                     {
-                        newCacheItem.ProhibitedPermissions.Add(reader["Name"].ToString());
+                        newCacheItem.RoleIds.Add((int)rd["RoleId"]);
                     }
-                    
+                    //Get User Permissions by userId
+                    SqlCommand cmdPermissions = new SqlCommand("Select * from AbpPermissions where UserId=@userId", conn);
+                    cmdPermissions.Parameters.AddWithValue("@userId", userId);
+
+                    SqlDataReader reader = cmdPermissions.ExecuteReader();
+
+                    while (reader.Read())
+                    {
+                        if ((bool)reader["IsGranted"])
+                        {
+                            newCacheItem.GrantedPermissions.Add(reader["Name"].ToString());
+                        }
+                        else
+                        {
+                            newCacheItem.ProhibitedPermissions.Add(reader["Name"].ToString());
+                        }
+
+                    }
+                    return newCacheItem;
                 }
-
-                conn.Close();
-
-                //foreach (var permissionInfo in await UserPermissionStore.GetPermissionsAsync(userId))
-                //{
-                //    if (permissionInfo.IsGranted)
-                //    {
-                //        newCacheItem.GrantedPermissions.Add(permissionInfo.Name);
-                //    }
-                //    else
-                //    {
-                //        newCacheItem.ProhibitedPermissions.Add(permissionInfo.Name);
-                //    }
-                //}
-
-                return newCacheItem;
             });
         }
 
@@ -223,74 +178,50 @@ namespace Abp.Authorization
             var cacheKey = userId + "@" + (GetCurrentTenantId() ?? 0);
             return _cacheManager.GetUserPermissionCache().Get(cacheKey, () =>
             {
-                SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("Default"));
-                conn.Open();
-
-                //Checking User
-                SqlCommand cmdUsers = new SqlCommand("Select count(*) from AbpUsers where Id=@userId", conn);
-                cmdUsers.Parameters.AddWithValue("@userId", userId);
-
-                int result = (int)cmdUsers.ExecuteScalar();
-
-                //var user = AbpUserStore.FindById(userId.ToString());
-                if (result == 0)
+                using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("Default")))
                 {
-                    return null;
-                }
+                    conn.Open();
+                    SqlCommand cmdUsers = new SqlCommand("Select count(*) from AbpUsers where Id=@userId", conn);
+                    cmdUsers.Parameters.AddWithValue("@userId", userId);
 
-                var newCacheItem = new UserPermissionCacheItem(userId);
+                    int result = (int)cmdUsers.ExecuteScalar();
 
-                //foreach (var roleName in AbpUserStore.GetRoles(user))
-                //{
-                //    newCacheItem.RoleIds.Add((RoleManager.GetRoleByName(roleName)).Id);
-                //}
-
-                //Get User Roles by userId
-                SqlCommand cmdRoles = new SqlCommand("Select * from AbpUserRoles  where UserId=@userId", conn);
-                cmdRoles.Parameters.AddWithValue("@userId", userId);
-
-                SqlDataReader rd = cmdRoles.ExecuteReader();
-
-                while (rd.Read())
-                {
-                    newCacheItem.RoleIds.Add((int)rd["RoleId"]);
-                }
-
-                //foreach (var permissionInfo in UserPermissionStore.GetPermissions(userId))
-                //{
-                //    if (permissionInfo.IsGranted)
-                //    {
-                //        newCacheItem.GrantedPermissions.Add(permissionInfo.Name);
-                //    }
-                //    else
-                //    {
-                //        newCacheItem.ProhibitedPermissions.Add(permissionInfo.Name);
-                //    }
-                //}
-
-
-                //Get User Permissions by userId
-                SqlCommand cmdPermissions = new SqlCommand("Select * from ApPermissions where UserId=@userId", conn);
-                cmdPermissions.Parameters.AddWithValue("userId", userId);
-
-                SqlDataReader reader = cmdPermissions.ExecuteReader();
-
-                while (reader.Read())
-                {
-                    if ((bool)reader["IsGranted"])
+                    if (result == 0)
                     {
-                        newCacheItem.GrantedPermissions.Add(reader["Name"].ToString());
+                        return null;
                     }
-                    else
+
+                    var newCacheItem = new UserPermissionCacheItem(userId);
+
+                    SqlCommand cmdRoles = new SqlCommand("Select * from AbpUserRoles  where UserId=@userId", conn);
+                    cmdRoles.Parameters.AddWithValue("@userId", userId);
+
+                    SqlDataReader rd = cmdRoles.ExecuteReader();
+
+                    while (rd.Read())
                     {
-                        newCacheItem.ProhibitedPermissions.Add(reader["Name"].ToString());
+                        newCacheItem.RoleIds.Add((int)rd["RoleId"]);
                     }
                     
+                    SqlCommand cmdPermissions = new SqlCommand("Select * from AbpPermissions where UserId=@userId", conn);
+                    cmdPermissions.Parameters.AddWithValue("userId", userId);
+
+                    SqlDataReader reader = cmdPermissions.ExecuteReader();
+
+                    while (reader.Read())
+                    {
+                        if ((bool)reader["IsGranted"])
+                        {
+                            newCacheItem.GrantedPermissions.Add(reader["Name"].ToString());
+                        }
+                        else
+                        {
+                            newCacheItem.ProhibitedPermissions.Add(reader["Name"].ToString());
+                        }
+
+                    }
+                    return newCacheItem;
                 }
-
-                conn.Close();
-
-                return newCacheItem;
             });
         }
 
@@ -433,87 +364,74 @@ namespace Abp.Authorization
             var cacheKey = roleId + "@" + (GetCurrentTenantId() ?? 0);
             return _cacheManager.GetRolePermissionCache().Get(cacheKey, () =>
             {
-                var newCacheItem = new RolePermissionCacheItem(roleId);
-
-                SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("Default"));
-                conn.Open();
-
-                SqlCommand cmdRolePermission = new SqlCommand("Select * from AbpRoles where Id=@roleId", conn);
-
-                cmdRolePermission.Parameters.AddWithValue("@roleId", roleId);
-
-                string role = string.Empty;
-                string tenantId = string.Empty;
-
-                SqlDataReader rd = cmdRolePermission.ExecuteReader();
-
-                while (rd.Read())
+                using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("Default")))
                 {
-                    role = rd["Name"].ToString();
-                    tenantId = (rd["TenantId"])?.ToString();
-                }
+                    var newCacheItem = new RolePermissionCacheItem(roleId);
+                    conn.Open();
 
-                //var role = AbpStore.FindById(roleId.ToString(), CancellationToken);
-                if (role == null)
-                {
-                    throw new AbpException("There is no role with given id: " + roleId);
-                }
+                    SqlCommand cmdRolePermission = new SqlCommand("Select * from AbpRoles where Id=@roleId", conn);
 
-                var staticRoleDefinition = RoleManagementConfig.StaticRoles.FirstOrDefault(r =>
-                     r.RoleName == role && r.Side == GetMultiTenancySides(tenantId));
+                    cmdRolePermission.Parameters.AddWithValue("@roleId", roleId);
 
-                if (staticRoleDefinition != null)
-                {
-                    SqlCommand cmdGetAllPermissions = new SqlCommand("Select Name from AbpPermissions ", conn);
+                    string role = string.Empty;
+                    string tenantId = string.Empty;
 
-                    SqlDataReader read = cmdGetAllPermissions.ExecuteReader();
-                    var allPermissions = new List<Permission>();
+                    SqlDataReader rd = cmdRolePermission.ExecuteReader();
 
-
-                    while (read.Read())
+                    while (rd.Read())
                     {
-                        allPermissions.Add(new Permission(read["Name"].ToString()));
+                        role = rd["Name"].ToString();
+                        tenantId = (rd["TenantId"])?.ToString();
                     }
 
-                    foreach (var permission in allPermissions)
+                    if (role == null)
                     {
-                        if (staticRoleDefinition.IsGrantedByDefault(permission))
+                        throw new AbpException("There is no role with given id: " + roleId);
+                    }
+
+                    var staticRoleDefinition = RoleManagementConfig.StaticRoles.FirstOrDefault(r =>
+                         r.RoleName == role && r.Side == GetMultiTenancySides(tenantId));
+
+                    if (staticRoleDefinition != null)
+                    {
+                        SqlCommand cmdGetAllPermissions = new SqlCommand("Select Name from AbpPermissions ", conn);
+
+                        SqlDataReader read = cmdGetAllPermissions.ExecuteReader();
+
+                        var allPermissions = new List<Permission>();
+
+                        while (read.Read())
                         {
-                            newCacheItem.GrantedPermissions.Add(permission.Name);
+                            allPermissions.Add(new Permission(read["Name"].ToString()));
+                        }
+
+                        foreach (var permission in allPermissions)
+                        {
+                            if (staticRoleDefinition.IsGrantedByDefault(permission))
+                            {
+                                newCacheItem.GrantedPermissions.Add(permission.Name);
+                            }
                         }
                     }
-                }
 
-                SqlCommand cmdPermissionsByRoleId = new SqlCommand("select * from AbpPermissions where RoleId=@roleId", conn);
-                cmdPermissionsByRoleId.Parameters.AddWithValue("@roleId", roleId);
+                    SqlCommand cmdPermissionsByRoleId = new SqlCommand("select * from AbpPermissions where RoleId=@roleId", conn);
+                    cmdPermissionsByRoleId.Parameters.AddWithValue("@roleId", roleId);
 
-                SqlDataReader reader = cmdPermissionsByRoleId.ExecuteReader();
+                    SqlDataReader reader = cmdPermissionsByRoleId.ExecuteReader();
 
-                while (reader.Read())
-                {
-                    if ((bool)reader["IsGranted"])
+                    while (reader.Read())
                     {
-                        newCacheItem.GrantedPermissions.AddIfNotContains(reader["Name"].ToString());
+                        if ((bool)reader["IsGranted"])
+                        {
+                            newCacheItem.GrantedPermissions.AddIfNotContains(reader["Name"].ToString());
+                        }
+                        else
+                        {
+                            newCacheItem.GrantedPermissions.Remove(reader["Name"].ToString());
+                        }
                     }
-                    else
-                    {
-                        newCacheItem.GrantedPermissions.Remove(reader["Name"].ToString());
-                    }
-                }
-
-                //foreach (var permissionInfo in RolePermissionStore.GetPermissions(roleId))
-                //{
-                //    if (permissionInfo.IsGranted)
-                //    {
-                //        newCacheItem.GrantedPermissions.AddIfNotContains(permissionInfo.Name);
-                //    }
-                //    else
-                //    {
-                //        newCacheItem.GrantedPermissions.Remove(permissionInfo.Name);
-                //    }
-                //}
-                conn.Close();
-                return newCacheItem;
+                    return newCacheItem;
+                }    
             });
         }
 
@@ -523,86 +441,75 @@ namespace Abp.Authorization
             var cacheKey = roleId + "@" + (GetCurrentTenantId() ?? 0);
             return await _cacheManager.GetRolePermissionCache().GetAsync(cacheKey, async () =>
             {
-                var newCacheItem = new RolePermissionCacheItem(roleId);
-
-                SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("Default"));
-                conn.Open();
-
-                SqlCommand cmdRolePermission = new SqlCommand("Select * from AbpRoles where Id=@roleId", conn);
-
-                cmdRolePermission.Parameters.AddWithValue("@roleId", roleId);
-
-                string role = string.Empty;
-                string tenantId = string.Empty;
-
-                SqlDataReader rd = cmdRolePermission.ExecuteReader();
-
-                while (rd.Read())
+                using (SqlConnection conn = new SqlConnection(_configuration.GetConnectionString("Default")))
                 {
-                    role = rd["Name"].ToString();
-                    tenantId = (rd["TenantId"])?.ToString();
-                }
+                    var newCacheItem = new RolePermissionCacheItem(roleId);
 
-                //var role = await Store.FindByIdAsync(roleId.ToString(), CancellationToken);
-                if (role == null)
-                {
-                    throw new AbpException("There is no role with given id: " + roleId);
-                }
+                    conn.Open();
 
-                var staticRoleDefinition = RoleManagementConfig.StaticRoles.FirstOrDefault(r =>
-                    r.RoleName == role && r.Side == GetMultiTenancySides(tenantId));
+                    SqlCommand cmdRolePermission = new SqlCommand("Select * from AbpRoles where Id=@roleId", conn);
 
-                if (staticRoleDefinition != null)
-                {
-                    SqlCommand cmdGetAllPermissions = new SqlCommand("Select Name from AbpPermissions ", conn);
+                    cmdRolePermission.Parameters.AddWithValue("@roleId", roleId);
 
-                    SqlDataReader read = cmdGetAllPermissions.ExecuteReader();
-                    var allPermissions = new List<Permission>();
+                    string role = string.Empty;
+                    string tenantId = string.Empty;
 
-                    while (read.Read())
+                    SqlDataReader rd = cmdRolePermission.ExecuteReader();
+
+                    while (rd.Read())
                     {
-                        allPermissions.Add(new Permission(read["Name"].ToString()));
+                        role = rd["Name"].ToString();
+                        tenantId = (rd["TenantId"])?.ToString();
                     }
 
-                    foreach (var permission in allPermissions)
+                    if (role == null)
                     {
-                        if (staticRoleDefinition.IsGrantedByDefault(permission))
+                        throw new AbpException("There is no role with given id: " + roleId);
+                    }
+
+                    var staticRoleDefinition = RoleManagementConfig.StaticRoles.FirstOrDefault(r =>
+                        r.RoleName == role && r.Side == GetMultiTenancySides(tenantId));
+
+                    if (staticRoleDefinition != null)
+                    {
+                        SqlCommand cmdGetAllPermissions = new SqlCommand("Select Name from AbpPermissions ", conn);
+
+                        SqlDataReader read = cmdGetAllPermissions.ExecuteReader();
+                        var allPermissions = new List<Permission>();
+
+                        while (read.Read())
                         {
-                            newCacheItem.GrantedPermissions.Add(permission.ToString());
+                            allPermissions.Add(new Permission(read["Name"].ToString()));
+                        }
+
+                        foreach (var permission in allPermissions)
+                        {
+                            if (staticRoleDefinition.IsGrantedByDefault(permission))
+                            {
+                                newCacheItem.GrantedPermissions.Add(permission.ToString());
+                            }
                         }
                     }
-                }
 
-                SqlCommand cmdPermissionsByRoleId = new SqlCommand("select * from AbpPermissions where RoleId=@roleId", conn);
-                cmdPermissionsByRoleId.Parameters.AddWithValue("@roleId", roleId);
+                    SqlCommand cmdPermissionsByRoleId = new SqlCommand("select * from AbpPermissions where RoleId=@roleId", conn);
+                    cmdPermissionsByRoleId.Parameters.AddWithValue("@roleId", roleId);
 
-                SqlDataReader reader = cmdPermissionsByRoleId.ExecuteReader();
+                    SqlDataReader reader = cmdPermissionsByRoleId.ExecuteReader();
 
-                while (reader.Read())
-                {
-                    if ((bool)reader["IsGranted"])
+                    while (reader.Read())
                     {
-                        newCacheItem.GrantedPermissions.AddIfNotContains(reader["Name"].ToString());
+                        if ((bool)reader["IsGranted"])
+                        {
+                            newCacheItem.GrantedPermissions.AddIfNotContains(reader["Name"].ToString());
+                        }
+                        else
+                        {
+                            newCacheItem.GrantedPermissions.Remove(reader["Name"].ToString());
+                        }
                     }
-                    else
-                    {
-                        newCacheItem.GrantedPermissions.Remove(reader["Name"].ToString());
-                    }
+                    return newCacheItem;
                 }
-
-                //foreach (var permissionInfo in await RolePermissionStore.GetPermissionsAsync(roleId))
-                //{
-                //    if (permissionInfo.IsGranted)
-                //    {
-                //        newCacheItem.GrantedPermissions.AddIfNotContains(permissionInfo.Name);
-                //    }
-                //    else
-                //    {
-                //        newCacheItem.GrantedPermissions.Remove(permissionInfo.Name);
-                //    }
-                //}
-
-                return newCacheItem;
+                
             });
         }
 

@@ -17,6 +17,65 @@ import * as moment from 'moment';
 export const API_BASE_URL = new InjectionToken<string>('API_BASE_URL');
 
 @Injectable()
+export class CachingServiceProxy {
+    private http: HttpClient;
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
+        this.http = http;
+        this.baseUrl = baseUrl !== undefined && baseUrl !== null ? baseUrl : "";
+    }
+
+    /**
+     * @return Success
+     */
+    clearUserPermissionsCaches(): Observable<void> {
+        let url_ = this.baseUrl + "/api/services/app/Caching/ClearUserPermissionsCaches";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+            })
+        };
+
+        return this.http.request("post", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processClearUserPermissionsCaches(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processClearUserPermissionsCaches(<any>response_);
+                } catch (e) {
+                    return <Observable<void>><any>_observableThrow(e);
+                }
+            } else
+                return <Observable<void>><any>_observableThrow(response_);
+        }));
+    }
+
+    protected processClearUserPermissionsCaches(response: HttpResponseBase): Observable<void> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (<any>response).error instanceof Blob ? (<any>response).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap(_responseText => {
+            return _observableOf<void>(<any>null);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap(_responseText => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf<void>(<any>null);
+    }
+}
+
+@Injectable()
 export class ConfigurationServiceProxy {
     private http: HttpClient;
     private baseUrl: string;
@@ -77,6 +136,76 @@ export class ConfigurationServiceProxy {
             }));
         }
         return _observableOf<void>(<any>null);
+    }
+}
+
+@Injectable()
+export class GetUsersServiceProxy {
+    private http: HttpClient;
+    private baseUrl: string;
+    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
+
+    constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
+        this.http = http;
+        this.baseUrl = baseUrl !== undefined && baseUrl !== null ? baseUrl : "";
+    }
+
+    /**
+     * @return Success
+     */
+    getListUsers(): Observable<ListUser[]> {
+        let url_ = this.baseUrl + "/api/services/app/GetUsers/GetListUsers";
+        url_ = url_.replace(/[?&]$/, "");
+
+        let options_ : any = {
+            observe: "response",
+            responseType: "blob",
+            headers: new HttpHeaders({
+                "Accept": "text/plain"
+            })
+        };
+
+        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
+            return this.processGetListUsers(response_);
+        })).pipe(_observableCatch((response_: any) => {
+            if (response_ instanceof HttpResponseBase) {
+                try {
+                    return this.processGetListUsers(<any>response_);
+                } catch (e) {
+                    return <Observable<ListUser[]>><any>_observableThrow(e);
+                }
+            } else
+                return <Observable<ListUser[]>><any>_observableThrow(response_);
+        }));
+    }
+
+    protected processGetListUsers(response: HttpResponseBase): Observable<ListUser[]> {
+        const status = response.status;
+        const responseBlob =
+            response instanceof HttpResponse ? response.body :
+            (<any>response).error instanceof Blob ? (<any>response).error : undefined;
+
+        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
+        if (status === 200) {
+            return blobToText(responseBlob).pipe(_observableMergeMap(_responseText => {
+            let result200: any = null;
+            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
+            if (Array.isArray(resultData200)) {
+                result200 = [] as any;
+                for (let item of resultData200)
+                    result200.push(ListUser.fromJS(item));
+            }
+            else {
+                result200 = <any>null;
+            }
+            return _observableOf(result200);
+            }));
+        } else if (status !== 200 && status !== 204) {
+            return blobToText(responseBlob).pipe(_observableMergeMap(_responseText => {
+            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
+            }));
+        }
+        return _observableOf<ListUser[]>(<any>null);
     }
 }
 
@@ -143,134 +272,6 @@ export class SessionServiceProxy {
     }
 }
 
-@Injectable()
-export class TokenAuthServiceProxy {
-    private http: HttpClient;
-    private baseUrl: string;
-    protected jsonParseReviver: ((key: string, value: any) => any) | undefined = undefined;
-
-    constructor(@Inject(HttpClient) http: HttpClient, @Optional() @Inject(API_BASE_URL) baseUrl?: string) {
-        this.http = http;
-        this.baseUrl = baseUrl !== undefined && baseUrl !== null ? baseUrl : "";
-    }
-
-    /**
-     * @return Success
-     */
-    getExternalAuthenticationProviders(): Observable<ExternalLoginProviderInfoModel[]> {
-        let url_ = this.baseUrl + "/api/TokenAuth/GetExternalAuthenticationProviders";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_ : any = {
-            observe: "response",
-            responseType: "blob",
-            headers: new HttpHeaders({
-                "Accept": "text/plain"
-            })
-        };
-
-        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
-            return this.processGetExternalAuthenticationProviders(response_);
-        })).pipe(_observableCatch((response_: any) => {
-            if (response_ instanceof HttpResponseBase) {
-                try {
-                    return this.processGetExternalAuthenticationProviders(<any>response_);
-                } catch (e) {
-                    return <Observable<ExternalLoginProviderInfoModel[]>><any>_observableThrow(e);
-                }
-            } else
-                return <Observable<ExternalLoginProviderInfoModel[]>><any>_observableThrow(response_);
-        }));
-    }
-
-    protected processGetExternalAuthenticationProviders(response: HttpResponseBase): Observable<ExternalLoginProviderInfoModel[]> {
-        const status = response.status;
-        const responseBlob =
-            response instanceof HttpResponse ? response.body :
-            (<any>response).error instanceof Blob ? (<any>response).error : undefined;
-
-        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
-        if (status === 200) {
-            return blobToText(responseBlob).pipe(_observableMergeMap(_responseText => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            if (Array.isArray(resultData200)) {
-                result200 = [] as any;
-                for (let item of resultData200)
-                    result200.push(ExternalLoginProviderInfoModel.fromJS(item));
-            }
-            else {
-                result200 = <any>null;
-            }
-            return _observableOf(result200);
-            }));
-        } else if (status !== 200 && status !== 204) {
-            return blobToText(responseBlob).pipe(_observableMergeMap(_responseText => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            }));
-        }
-        return _observableOf<ExternalLoginProviderInfoModel[]>(<any>null);
-    }
-
-    /**
-     * @return Success
-     */
-    getListUsers(): Observable<ListUser[]> {
-        let url_ = this.baseUrl + "/api/TokenAuth/GetListUsers";
-        url_ = url_.replace(/[?&]$/, "");
-
-        let options_ : any = {
-            observe: "response",
-            responseType: "blob",
-            headers: new HttpHeaders({
-                "Accept": "text/plain"
-            })
-        };
-
-        return this.http.request("get", url_, options_).pipe(_observableMergeMap((response_ : any) => {
-            return this.processGetListUsers(response_);
-        })).pipe(_observableCatch((response_: any) => {
-            if (response_ instanceof HttpResponseBase) {
-                try {
-                    return this.processGetListUsers(<any>response_);
-                } catch (e) {
-                    return <Observable<ListUser[]>><any>_observableThrow(e);
-                }
-            } else
-                return <Observable<ListUser[]>><any>_observableThrow(response_);
-        }));
-    }
-
-    protected processGetListUsers(response: HttpResponseBase): Observable<ListUser[]> {
-        const status = response.status;
-        const responseBlob =
-            response instanceof HttpResponse ? response.body :
-            (<any>response).error instanceof Blob ? (<any>response).error : undefined;
-
-        let _headers: any = {}; if (response.headers) { for (let key of response.headers.keys()) { _headers[key] = response.headers.get(key); }}
-        if (status === 200) {
-            return blobToText(responseBlob).pipe(_observableMergeMap(_responseText => {
-            let result200: any = null;
-            let resultData200 = _responseText === "" ? null : JSON.parse(_responseText, this.jsonParseReviver);
-            if (Array.isArray(resultData200)) {
-                result200 = [] as any;
-                for (let item of resultData200)
-                    result200.push(ListUser.fromJS(item));
-            }
-            else {
-                result200 = <any>null;
-            }
-            return _observableOf(result200);
-            }));
-        } else if (status !== 200 && status !== 204) {
-            return blobToText(responseBlob).pipe(_observableMergeMap(_responseText => {
-            return throwException("An unexpected server error occurred.", status, _responseText, _headers);
-            }));
-        }
-        return _observableOf<ListUser[]>(<any>null);
-    }
-}
-
 export class ChangeUiThemeInput implements IChangeUiThemeInput {
     theme: string;
 
@@ -312,6 +313,57 @@ export class ChangeUiThemeInput implements IChangeUiThemeInput {
 
 export interface IChangeUiThemeInput {
     theme: string;
+}
+
+export class ListUser implements IListUser {
+    name: string | undefined;
+    surname: string | undefined;
+    age: number;
+
+    constructor(data?: IListUser) {
+        if (data) {
+            for (var property in data) {
+                if (data.hasOwnProperty(property))
+                    (<any>this)[property] = (<any>data)[property];
+            }
+        }
+    }
+
+    init(_data?: any) {
+        if (_data) {
+            this.name = _data["name"];
+            this.surname = _data["surname"];
+            this.age = _data["age"];
+        }
+    }
+
+    static fromJS(data: any): ListUser {
+        data = typeof data === 'object' ? data : {};
+        let result = new ListUser();
+        result.init(data);
+        return result;
+    }
+
+    toJSON(data?: any) {
+        data = typeof data === 'object' ? data : {};
+        data["name"] = this.name;
+        data["surname"] = this.surname;
+        data["age"] = this.age;
+        return data; 
+    }
+
+    clone(): ListUser {
+        const json = this.toJSON();
+        let result = new ListUser();
+        result.init(json);
+        return result;
+    }
+}
+
+export interface IListUser {
+    name: string | undefined;
+    surname: string | undefined;
+    age: number;
 }
 
 export class ApplicationInfoDto implements IApplicationInfoDto {
@@ -536,104 +588,6 @@ export interface IGetCurrentLoginInformationsOutput {
     application: ApplicationInfoDto;
     user: UserLoginInfoDto;
     tenant: TenantLoginInfoDto;
-}
-
-export class ExternalLoginProviderInfoModel implements IExternalLoginProviderInfoModel {
-    name: string | undefined;
-    clientId: string | undefined;
-
-    constructor(data?: IExternalLoginProviderInfoModel) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.name = _data["name"];
-            this.clientId = _data["clientId"];
-        }
-    }
-
-    static fromJS(data: any): ExternalLoginProviderInfoModel {
-        data = typeof data === 'object' ? data : {};
-        let result = new ExternalLoginProviderInfoModel();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["name"] = this.name;
-        data["clientId"] = this.clientId;
-        return data; 
-    }
-
-    clone(): ExternalLoginProviderInfoModel {
-        const json = this.toJSON();
-        let result = new ExternalLoginProviderInfoModel();
-        result.init(json);
-        return result;
-    }
-}
-
-export interface IExternalLoginProviderInfoModel {
-    name: string | undefined;
-    clientId: string | undefined;
-}
-
-export class ListUser implements IListUser {
-    name: string | undefined;
-    surname: string | undefined;
-    age: number;
-
-    constructor(data?: IListUser) {
-        if (data) {
-            for (var property in data) {
-                if (data.hasOwnProperty(property))
-                    (<any>this)[property] = (<any>data)[property];
-            }
-        }
-    }
-
-    init(_data?: any) {
-        if (_data) {
-            this.name = _data["name"];
-            this.surname = _data["surname"];
-            this.age = _data["age"];
-        }
-    }
-
-    static fromJS(data: any): ListUser {
-        data = typeof data === 'object' ? data : {};
-        let result = new ListUser();
-        result.init(data);
-        return result;
-    }
-
-    toJSON(data?: any) {
-        data = typeof data === 'object' ? data : {};
-        data["name"] = this.name;
-        data["surname"] = this.surname;
-        data["age"] = this.age;
-        return data; 
-    }
-
-    clone(): ListUser {
-        const json = this.toJSON();
-        let result = new ListUser();
-        result.init(json);
-        return result;
-    }
-}
-
-export interface IListUser {
-    name: string | undefined;
-    surname: string | undefined;
-    age: number;
 }
 
 export class ApiException extends Error {

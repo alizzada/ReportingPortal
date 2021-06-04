@@ -14,7 +14,6 @@ namespace ReportingPortal.Authorization
 
             //TENANT-SPECIFIC PERMISSIONS
             reportingPages.CreateChildPermission(ReportingPermissions.ReportingPages_DemoUiComponents, L("DemoUiComponents"), multiTenancySides: MultiTenancySides.Tenant);
-            reportingPages.CreateChildPermission(ReportingPermissions.ReportingPages_Administration_Languages, L("DemoUiComponents"), multiTenancySides: MultiTenancySides.Tenant);
 
             context.CreatePermission(PermissionNames.Pages_Users, L("Users"));
             context.CreatePermission(PermissionNames.Pages_Users_Activation, L("UsersActivation"));
