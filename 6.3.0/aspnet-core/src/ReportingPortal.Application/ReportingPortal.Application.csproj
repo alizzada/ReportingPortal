@@ -15,7 +15,7 @@
   </ItemGroup>
   <ItemGroup>
     <Reference Include="ServicePortal.Core.Shared">
-      <HintPath>..\..\..\..\..\..\TayqaTech\TayqaSale\ServicePortal\ServicePortal\aspnet-core\src\ServicePortal.Core.Shared\bin\Debug\netstandard2.0\ServicePortal.Core.Shared.dll</HintPath>
+      <HintPath>..\..\..\..\..\ServicePortal\aspnet-core\src\ServicePortal.Core.Shared\bin\Debug\netstandard2.0\ServicePortal.Core.Shared.dll</HintPath>
     </Reference>
   </ItemGroup>
 
