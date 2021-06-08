@@ -11,12 +11,13 @@ namespace ReportingPortal.Test
 {
     public class GetUsers : ReportingPortalAppServiceBase, IGetUsers
     {
-        [AbpAuthorize(ReportingPermissions.ReportingPages_DemoUiComponents)]
+        [AbpAuthorize]
         public List<ListUser> GetListUsers()
         {
             var listUser = new List<ListUser>()
             {
-                new ListUser{Age=28,Name="Ali",Surname="Alizada"}
+                new ListUser{Age=28,Name="Ali",Surname="Alizada"},
+                new ListUser{Age=23,Name="Orxan",Surname="Salamov"}
             };
 
             return listUser;

@@ -44,6 +44,7 @@ export function getCurrentLanguage(): string {
   declarations: [RootComponent],
   providers: [
     { provide: HTTP_INTERCEPTORS, useClass: AbpHttpInterceptor, multi: true },
+
     {
       provide: APP_INITIALIZER,
       useFactory: (appInitializer: AppInitializer) => appInitializer.init(),

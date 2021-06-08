@@ -81,25 +81,25 @@ export class AppAuthService {
         expireInSeconds: number,
         rememberMe?: boolean
     ): void {
-        const tokenExpireDate = rememberMe
-            ? new Date(new Date().getTime() + 1000 * expireInSeconds)
-            : undefined;
+        // const tokenExpireDate = rememberMe
+        //     ? new Date(new Date().getTime() + 1000 * expireInSeconds)
+        //     : undefined;
 
-        this._tokenService.setToken(accessToken, tokenExpireDate);
+        // this._tokenService.setToken(accessToken, tokenExpireDate);
 
-        this._utilsService.setCookieValue(
-            AppConsts.authorization.encryptedAuthTokenName,
-            encryptedAccessToken,
-            tokenExpireDate,
-            abp.appPath
-        );
+        // this._utilsService.setCookieValue(
+        //     AppConsts.authorization.encryptedAuthTokenName,
+        //     encryptedAccessToken,
+        //     tokenExpireDate,
+        //     abp.appPath
+        // );
 
-        let initialUrl = UrlHelper.initialUrl;
-        if (initialUrl.indexOf('/login') > 0) {
-            initialUrl = AppConsts.appBaseUrl;
-        }
+        // let initialUrl = UrlHelper.initialUrl;
+        // if (initialUrl.indexOf('/login') > 0) {
+        //     initialUrl = AppConsts.appBaseUrl;
+        // }
 
-        location.href = initialUrl;
+        // location.href = initialUrl;
     }
 
     private clear(): void {

@@ -78,6 +78,10 @@ namespace Abp.Authorization
                 cmdGetPermission.Parameters.AddWithValue("@permissionName", permissionName);
 
                 var name = (cmdGetPermission.ExecuteScalar())?.ToString();
+                if (name==null)
+                {
+                    throw new AbpException("You are not permission to this operation");
+                }
 
                 Permission permission = new Permission(name);
 
